@@ -18,7 +18,7 @@ _HEADERS = {"Content-Type": "application/json"}
 
 class GLMProvider(SearchProvider):
     name = "glm"
-    capabilities = {"search_web", "research"}
+    capabilities = {"search_web", "research", "zh", "cheap"}
     cost_level = "low"
     _engine = "search_pro"  # 默认较高质量中文引擎
 
