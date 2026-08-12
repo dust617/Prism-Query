@@ -54,6 +54,23 @@ searchbrain/
 
 核心代码无需修改——Router 会自动按能力路由，Evidence 层会自动归一化。
 
+## 已接入 Provider（8 个，按需路由）
+
+| Provider | 能力 | 定位 | key 来源 |
+|---|---|---|---|
+| GLM 智谱 | search_web/research/zh | 中文主力 | auth.json(zhipu) |
+| Perplexity | search_web/research/answer/global | 国外问答主力 | OPENROUTER_API_KEY |
+| Tavily | search_web/answer/global/cheap | SERP 补充 | TAVILY_API_KEY |
+| AnySearch | search_web/global/cheap | 全文搜索(区域感知) | ANYSEARCH_API_KEY |
+| Exa | search_web/fetch_url/research/global | 语义/项目/报告 | EXA_API_KEY |
+| Firecrawl | fetch_url/extract/crawl/search | 网页理解层 | FIRECRAWL_API_KEY |
+| DeepSeek | search_web/research/answer/zh | 深度/改写(自动多查询) | auth.json(deepseek) |
+| Doubao 豆包 | search_web/research/answer/zh/global | 中文深度补充(模型自动搜) | ARK_API_KEY+DOUBAO_MODEL |
+
+- Router 按 语言(zh/global) + 能力匹配 + 成本 选源；中文问题走 GLM/DeepSeek/Doubao，英文走 Perplexity/Tavily/Exa
+- 新增 Provider 只需：实现 `providers/base.py` 的 `SearchProvider` + 在 `register.py` 注册（key 自动检测）
+- 凭据统一放 `.searchbrain-credentials.env`（不入仓库）；智谱/DeepSeek 从 `~/.pi/agent/auth.json` 读取
+
 ## 运行
 
 ```bash

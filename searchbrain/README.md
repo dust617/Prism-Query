@@ -74,6 +74,9 @@ python -m searchbrain.mcp_server   # stdio server，只暴露 search(query, mode
 | Exa | search_web / fetch_url / research | 语义/项目/报告 |
 | Firecrawl | fetch_url / extract_page / crawl_site | 网页理解 |
 | DeepSeek | search_web / research / answer_with_citations | 深度/改写 |
+| Tavily | search_web / answer_with_citations / global | SERP 补充 |
+| AnySearch | search_web / global | 全文搜索（区域感知） |
+| Doubao 豆包 | search_web / research / answer_with_citations / zh | 中文深度补充（模型自动搜） |
 
 新增源：实现 `providers/base.py` 的 `SearchProvider`，在 `providers/register.py` 注册。
 
