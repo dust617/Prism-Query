@@ -12,6 +12,7 @@ from .depth import Budget, compute_depth_score, decide_level
 from .evaluator import compute_confidence
 from .evidence import (apply_source_policy, assess, dedupe, detect_gap,
                        normalize)
+from .gap_model import detect_gap_with_model
 from .models import (Evidence, InfoGap, ProviderResult, SearchLevel,
                      SearchMode, SearchRequest, SearchResponse, SearchTrace)
 from .providers.base import available, get
@@ -78,6 +79,7 @@ def search(request: SearchRequest | str,
     evidences: list[Evidence] = []
     used: set[str] = set()
     last_gap: InfoGap | None = None
+    model_gap_checked = False
 
     while True:
         # 预算不足时：有明确缺口且预算可升级 → 动态升级；否则停止
@@ -107,7 +109,7 @@ def search(request: SearchRequest | str,
         trace.rounds += 1
         trace.estimated_cost += result.estimated_cost
 
-        # 证据层：normalize → dedupe → source policy
+        # 决策平面 Source Policy：证据层归一化 + 权威度赋值
         evidences = dedupe(evidences + normalize(result), request.max_results)
         evidences = apply_source_policy(request.query, evidences)
 
@@ -115,8 +117,15 @@ def search(request: SearchRequest | str,
         if assess(request.query, evidences, results, level):
             trace.stop_reason = "sufficient_information"
             break
-        # 不够 → 找明确缺口
+        # 不够 → 先规则找明确缺口
         last_gap = detect_gap(request.query, evidences, results, level, budget)
+        # 规则无缺口 + 深度档 + 模型启用 → 用小模型补判一次（语义缺口）
+        if last_gap is None and level in (SearchLevel.S3, SearchLevel.S4) \
+                and Defaults.GAP_MODEL_ENABLED and not model_gap_checked:
+            model_gap_checked = True
+            model_gap = detect_gap_with_model(request.query, evidences, results)
+            if model_gap is not None:
+                last_gap = model_gap
         if last_gap is None or last_gap.importance < 0.5:
             trace.stop_reason = "no_clear_gap"
             break

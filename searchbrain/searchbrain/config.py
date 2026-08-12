@@ -74,3 +74,5 @@ class Defaults:
     MAX_COST = 0.20
     MAX_QUERIES = 12
     MAX_ROUNDS = 4
+    # InfoGap 模型化：S3/S4 档位、规则无缺口时，用小模型补判一次
+    GAP_MODEL_ENABLED = True

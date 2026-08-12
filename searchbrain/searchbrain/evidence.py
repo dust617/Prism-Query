@@ -67,21 +67,23 @@ def apply_source_policy(query: str, evidences: list[Evidence]) -> list[Evidence]
 
 def assess(query: str, evidences: list[Evidence],
            results: list[ProviderResult], level: SearchLevel) -> bool:
-    """评估现有证据是否足够（覆盖 + 来源多样性 + 是否有答案）。
+    """评估现有证据是否足够（覆盖 + 多搜索源 + 是否有答案）。
 
     返回 True 表示足够，可以停止。
+    "多源"指不同 Provider（搜索源）交叉验证，而非仅 URL 来源类型。
     """
     n = len(evidences)
-    n_st = len({e.source_type for e in evidences})
+    # 来源数 = 有 items 或 有 answer 的 Provider（问答型也算交叉验证来源）
+    n_prov = len({r.provider for r in results if r.items or r.answer})
     has_ans = any(r.answer for r in results)
     if level == SearchLevel.S1:
         return n >= 1 or has_ans
     if level == SearchLevel.S2:
         return n >= 2 or has_ans
     if level == SearchLevel.S3:
-        return n >= 3 and n_st >= 2
+        return n >= 3 and n_prov >= 2
     if level == SearchLevel.S4:
-        return n >= 4 and n_st >= 2 and has_ans
+        return n >= 4 and n_prov >= 2 and has_ans
     return True
 
 
@@ -90,12 +92,12 @@ def detect_gap(query: str, evidences: list[Evidence],
                budget) -> InfoGap | None:
     """检测信息缺口。补搜必须对应明确缺口；没有缺口就停止。"""
     n = len(evidences)
-    n_st = len({e.source_type for e in evidences})
+    n_prov = len({r.provider for r in results if r.items or r.answer})
     if n == 0 and not any(r.answer for r in results):
         return InfoGap("无任何结果，需要换源重试", importance=0.9)
-    # 多源档位但来源类型单一 → 需要交叉验证
-    if level in (SearchLevel.S3, SearchLevel.S4) and n_st < 2:
-        return InfoGap("来源类型单一，需多源交叉验证",
+    # 多源档位但搜索源单一 → 需要交叉验证
+    if level in (SearchLevel.S3, SearchLevel.S4) and n_prov < 2:
+        return InfoGap("搜索源单一，需多源交叉验证",
                        preferred_source_type="web", importance=0.8)
     # 覆盖不足
     if level in (SearchLevel.S3, SearchLevel.S4) and n < 3:
