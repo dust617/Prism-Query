@@ -66,7 +66,22 @@ print(r.answer, r.results, r.trace)
 # CLI
 PYTHONIOENCODING=utf-8 python -m searchbrain "你的问题"
 PYTHONIOENCODING=utf-8 python -m searchbrain "你的问题" --mode quality --json
+
+# MCP（供 Claude Code / Codex / OpenCode / GPT CLI 等调用）
+# 已配置到本机 Claude Code 和 Codex：
+#   claude mcp add searchbrain -e PYTHONPATH=<searchbrain目录> -- python -m searchbrain.mcp_server
+#   codex mcp add searchbrain -e PYTHONPATH=<searchbrain目录> -- python -m searchbrain.mcp_server
+# 或直接运行： python -m searchbrain.mcp_server
 ```
+
+## InfoGap 模型化（可选、默认开）
+
+S3/S4 档位且规则找不到机械缺口时，会调用小模型（DeepSeek）分析已有证据，
+输出结构化"还缺什么"（missing_information），由系统判断值不值得补搜。
+
+- 规则 gap 找机械缺口（数量不足/来源单一）；模型 gap 找语义缺口（缺官方价格/一手资料）
+- 关闭：在 `config.py` 设 `Defaults.GAP_MODEL_ENABLED = False`
+- 失败/超时会静默回退到规则版，不中断主流程
 
 ## 测试
 
