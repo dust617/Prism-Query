@@ -82,7 +82,7 @@ python -m searchbrain.mcp_server   # stdio server，只暴露 search(query, mode
 
 ## 配置
 
-凭据放 `.searchbrain-credentials.env`（本机私有，不入仓库）：
+凭据放项目根 `.searchbrain-credentials.env`（本机私有，不入仓库）：
 ```
 OPENROUTER_API_KEY=...
 EXA_API_KEY=...
