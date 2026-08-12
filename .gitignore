@@ -1,0 +1,26 @@
+# ===== 凭据（绝不入库）=====
+.searchbrain-credentials.env
+*.env
+.env*
+
+# ===== 详细调研 / 开发文档（内部，不入仓库）=====
+/ChatGPT对话-设计智能搜索工具.md
+/SearchBrain-文档概要.md
+/SearchBrain-调研计划.md
+/SearchBrain-调研发现-官方搜索vsAPI.md
+/SearchBrain-实测报告.md
+/SearchBrain-搜索工具清单与测试状态.md
+/SearchBrain-完整设计文档.md
+
+# ===== Python =====
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+
+# ===== OS/编辑 =====
+Thumbs.db
+.DS_Store
