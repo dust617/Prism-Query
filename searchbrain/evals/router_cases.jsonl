@@ -5,3 +5,8 @@
 {"query": "比较 Tavily 和 Exa API 优缺点", "expected_cap": "search_web", "hint": "multi"}
 {"query": "Electron vs Tauri 哪个更适合桌面应用", "expected_cap": "search_code"}
 {"query": "OpenAI 最新模型价格", "expected_cap": "search_web"}
+{"query": "X上大家怎么评价 Claude", "expected_cap": "answer_with_citations"}
+{"query": "某 GitHub 项目的 issues 和活跃度", "expected_cap": "search_code"}
+{"query": "React vs Vue 哪个适合新项目", "expected_cap": "search_code"}
+{"query": "GLM 最新价格", "expected_cap": "search_web"}
+{"query": "巴西 Shopee 家居市场机会", "expected_cap": "search_web"}

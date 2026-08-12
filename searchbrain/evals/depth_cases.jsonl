@@ -6,3 +6,7 @@
 {"query": "2026年AI Agent市场趋势", "expected_level": "S2"}
 {"query": "分析某跨境电商竞争格局", "expected_level": "S3"}
 {"query": "该不该投资这个AI创业项目", "expected_level": "S2"}
+{"query": "OpenAI 最新模型价格", "expected_level": "S2"}
+{"query": "分析 AI Agent 行业竞争格局", "expected_level": "S3"}
+{"query": "2026 加密货币市场趋势", "expected_level": "S2"}
+{"query": "评估这个技术方案选型", "expected_level": "S2"}

@@ -18,3 +18,11 @@
 {"query": "总结这两段代码的区别", "expected_search": false}
 {"query": "解释哈希表的原理", "expected_search": false}
 {"query": "把这个列表去重排序", "expected_search": false}
+{"query": "2026 年 AI Agent 创业机会有哪些", "expected_search": true}
+{"query": "阿里云 2026 年营收是多少", "expected_search": true}
+{"query": "某开源项目最近更新了吗", "expected_search": true}
+{"query": "X上大家怎么评价 Claude 新模型", "expected_search": true}
+{"query": "解释什么是 REST API", "expected_search": false}
+{"query": "TCP 和 UDP 有什么区别", "expected_search": false}
+{"query": "翻译:今天天气很好", "expected_search": false}
+{"query": "写一个 Python 爬虫示例", "expected_search": false}
