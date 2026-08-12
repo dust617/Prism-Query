@@ -54,7 +54,7 @@ class VolcProvider(SearchProvider):
         except Exception as exc:
             return ProviderResult(provider=self.name, query=request.query,
                                   raw_metadata={"error": str(exc)})
-        # 提取 web_search_call（是否触发搜索）和最终回答
+        # 提取 web_search_call（是否触发搜索）、最终回答和 token 消耗
         searched = False
         text = ""
         for o in data.get("output", []):
@@ -62,7 +62,10 @@ class VolcProvider(SearchProvider):
                 searched = True
             elif o.get("type") == "message" and o.get("content"):
                 text = o["content"][0].get("text", "")
+        usage = data.get("usage", {})
+        tokens = usage.get("total_tokens", 0)
         return ProviderResult(provider=self.name, query=request.query,
                               items=[], answer=text or None,
-                              raw_metadata={"searched": searched},
+                              raw_metadata={"searched": searched,
+                                            "tokens": tokens},
                               estimated_cost=0.005)

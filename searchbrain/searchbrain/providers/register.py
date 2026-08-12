@@ -40,4 +40,4 @@ def load_providers() -> None:
             register(VolcProvider(
                 name="deepseek_volc", model_env="DEEPSEEK_VOLC_MODEL",
                 capabilities={"search_web", "research", "answer_with_citations",
-                              "zh", "global", "cheap"}, cost_level="low"))
+                              "zh", "global", "cheap", "free"}, cost_level="low"))

@@ -19,6 +19,7 @@ from .providers.base import available, get
 from .providers.register import load_providers
 from .router import choose, choose_capability
 from .trigger import compute_need_score
+from . import usage as _usage
 
 _loaded = False
 
@@ -139,8 +140,19 @@ def search(request: SearchRequest | str,
     confidence = compute_confidence(request.query, evidences, results,
                                     level, True)
 
-    return SearchResponse(query=request.query,
+    resp = SearchResponse(query=request.query,
                           answer=_pick_answer(results),
                           results=evidences,
                           trace=trace,
                           confidence=confidence)
+    # 用量日志（token 明细从各 Provider 的 raw_metadata 汇总，不阻塞主流程）
+    try:
+        sb_tokens = {}
+        for r in results:
+            tk = r.raw_metadata.get("tokens") if isinstance(r.raw_metadata, dict) else None
+            if tk:
+                sb_tokens[r.provider] = sb_tokens.get(r.provider, 0) + tk
+        _usage.record(resp, sb_tokens)
+    except Exception:
+        pass
+    return resp
