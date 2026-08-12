@@ -114,6 +114,7 @@ class SearchTrace:
     estimated_cost: float = 0.0
     latency_ms: int = 0
     stop_reason: str = ""
+    last_gap: Optional[dict] = None   # 最后一次信息缺口（可观测）
 
 
 @dataclass

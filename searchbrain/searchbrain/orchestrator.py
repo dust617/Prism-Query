@@ -149,7 +149,7 @@ def search(request: SearchRequest | str,
         if assess(request.query, evidences, results, level):
             trace.stop_reason = "sufficient_information"
             break
-        # 不够 → 先规则找明确缺口
+        # 不够 → 先规则找机械缺口
         last_gap = detect_gap(request.query, evidences, results, level, budget)
         # 读页闭环：S3/S4 且已有 URL 但 snippet 不足 → 抓 1-2 页补正文
         if last_gap is not None and level in (SearchLevel.S3, SearchLevel.S4)                 and budget.can_continue:
@@ -160,17 +160,18 @@ def search(request: SearchRequest | str,
                 if assess(request.query, evidences, results, level):
                     trace.stop_reason = "sufficient_information"
                     break
-        # 规则无缺口 + 深度档 + 模型启用 → 用小模型补判一次（语义缺口）
-        if last_gap is None and level in (SearchLevel.S3, SearchLevel.S4) \
-                and Defaults.GAP_MODEL_ENABLED and not model_gap_checked:
+        # 深度档 + 模型启用 → 用模型判语义缺口（规则机械判断之外，决定"值不值得继续"）
+        if level in (SearchLevel.S3, SearchLevel.S4)                 and Defaults.GAP_MODEL_ENABLED and not model_gap_checked:
             model_gap_checked = True
             model_gap = detect_gap_with_model(request.query, evidences, results)
             if model_gap is not None:
-                last_gap = model_gap
-        if last_gap is None or last_gap.importance < 0.5:
+                last_gap = model_gap  # 模型缺口覆盖规则缺口（更了解语义还缺什么）
+        # 补搜价值判断：importance 达标 且 expected_value 达标（价值 > 成本）
+        if last_gap is None or last_gap.importance < 0.5                 or last_gap.expected_value < 0.5:
             trace.stop_reason = "no_clear_gap"
             break
-        # 有缺口 → 继续循环（预算不足时循环顶部会决定是否 escalate）
+        # 有缺口 → 记录并继续循环（预算不足时顶部决定 escalate）
+        trace.last_gap = last_gap.to_dict()
 
     evidences = _rank_evidence(request.query, evidences)
     trace.searched = True
