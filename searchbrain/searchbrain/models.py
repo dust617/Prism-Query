@@ -124,6 +124,7 @@ class SearchResponse:
     results: list[Evidence] = field(default_factory=list)  # 归一化后的证据层
     trace: SearchTrace = field(default_factory=SearchTrace)
     confidence: float = 0.0
+    cross_validated: bool = False   # 多源交叉验证（>=2 个 Provider 有 items 或 answer）
 
     @property
     def sources(self) -> list[str]:
@@ -157,4 +158,25 @@ class SearchResponse:
                 "latency_ms": self.trace.latency_ms,
                 "stop_reason": self.trace.stop_reason,
             },
+        }
+
+    def compact_dict(self, max_sources: int = 5) -> dict:
+        """压缩版输出：给 Agent 省 token。answer + 关键来源 + 置信。"""
+        return {
+            "answer": self.answer,
+            "sources": self.sources[:max_sources],
+            "confidence": round(self.confidence, 2),
+            "trace": {"searched": self.trace.searched,
+                      "depth": self.trace.level,
+                      "cost": round(self.trace.estimated_cost, 5)},
+        }
+
+    def facts_dict(self) -> dict:
+        """只事实版：标题+链接精简列表，适合 Agent 快速过目。"""
+        return {
+            "facts": [{"title": e.title, "url": e.url,
+                       "source_type": e.source_type,
+                       "provider": e.provider}
+                      for e in self.results],
+            "confidence": round(self.confidence, 2),
         }

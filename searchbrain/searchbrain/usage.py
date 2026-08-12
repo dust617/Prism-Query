@@ -38,6 +38,7 @@ def record(resp: SearchResponse,
             "cost": round(resp.trace.estimated_cost, 6),
             "latency_ms": resp.trace.latency_ms,
             "stop": resp.trace.stop_reason,
+            "cross_validated": resp.cross_validated,
             "tokens": tokens,
         }
         with open(_LOG_FILE, "a", encoding="utf-8") as f:

@@ -39,6 +39,33 @@ def _pick_answer(results: list[ProviderResult]) -> str | None:
     return None
 
 
+def _fetch_missing_pages(evidences: list[Evidence], results: list[ProviderResult],
+                        max_fetch: int = 2) -> tuple[list[Evidence], bool]:
+    """读页闭环：snippet 不足时，用 Firecrawl 抓关键页面补正文。
+
+    触发条件：有带 URL 的 evidence 且 snippet 较短（<200 字），
+    且 budget 允许（由调用方控制）。返回 (新增 evidence, 是否抓过)。
+    """
+    provider = get("firecrawl")
+    if provider is None or not hasattr(provider, "scrape"):
+        return [], False
+    # 候选：snippet 短且有 URL 的证据（按 relevance 排序）
+    cands = sorted(
+        [e for e in evidences if e.url and len(e.snippet) < 200],
+        key=lambda e: e.relevance, reverse=True)[:max_fetch]
+    if not cands:
+        return [], False
+    added = []
+    for e in cands:
+        body = provider.scrape(e.url)
+        if body and len(body) > 100:
+            added.append(Evidence(
+                url=e.url, title=e.title, snippet=body,
+                source_type=e.source_type, provider="firecrawl",
+                relevance=e.relevance, authority=e.authority))
+    return added, bool(added)
+
+
 def _rank_evidence(query: str, evidences: list[Evidence]) -> list[Evidence]:
     """证据排序：相关性 60% + 来源权威度 40%（权威度由 Source Policy 赋值）。"""
     def _key(e: Evidence):
@@ -91,8 +118,10 @@ def search(request: SearchRequest | str,
                 trace.stop_reason = "budget_exhausted"
                 break
 
-        cap = choose_capability(request.query)
-        pname = choose(request.query, used, level, request)
+        # Research Loop：若有缺口建议的新查询，用它演进补搜（而非原 query）
+        loop_query = (last_gap.suggested_query or request.query)             if last_gap and last_gap.suggested_query else request.query
+        cap = choose_capability(loop_query)
+        pname = choose(loop_query, used, level, request)
         if pname is None:
             trace.stop_reason = "no_more_providers"
             break
@@ -101,7 +130,9 @@ def search(request: SearchRequest | str,
         if provider is None:
             continue
 
-        result = provider.search(request)
+        result = provider.search(SearchRequest(
+            query=loop_query, mode=request.mode, max_results=request.max_results,
+            provider_hint=request.provider_hint))
         results.append(result)
         budget.consume(1, result.estimated_cost)
         trace.providers_used.append(pname)
@@ -120,6 +151,15 @@ def search(request: SearchRequest | str,
             break
         # 不够 → 先规则找明确缺口
         last_gap = detect_gap(request.query, evidences, results, level, budget)
+        # 读页闭环：S3/S4 且已有 URL 但 snippet 不足 → 抓 1-2 页补正文
+        if last_gap is not None and level in (SearchLevel.S3, SearchLevel.S4)                 and budget.can_continue:
+            fetched, fetched_any = _fetch_missing_pages(evidences, results)
+            if fetched_any:
+                evidences = dedupe(evidences + fetched, request.max_results)
+                evidences = apply_source_policy(request.query, evidences)
+                if assess(request.query, evidences, results, level):
+                    trace.stop_reason = "sufficient_information"
+                    break
         # 规则无缺口 + 深度档 + 模型启用 → 用小模型补判一次（语义缺口）
         if last_gap is None and level in (SearchLevel.S3, SearchLevel.S4) \
                 and Defaults.GAP_MODEL_ENABLED and not model_gap_checked:
@@ -140,11 +180,13 @@ def search(request: SearchRequest | str,
     confidence = compute_confidence(request.query, evidences, results,
                                     level, True)
 
+    n_prov = len({r.provider for r in results if r.items or r.answer})
     resp = SearchResponse(query=request.query,
                           answer=_pick_answer(results),
                           results=evidences,
                           trace=trace,
-                          confidence=confidence)
+                          confidence=confidence,
+                          cross_validated=n_prov >= 2)
     # 用量日志（token 明细从各 Provider 的 raw_metadata 汇总，不阻塞主流程）
     try:
         sb_tokens = {}

@@ -13,6 +13,7 @@ from ..models import ProviderResult, SearchItem, SearchRequest
 from .base import SearchProvider
 
 _SEARCH = "https://api.firecrawl.dev/v2/search"
+_SCRAPE = "https://api.firecrawl.dev/v2/scrape"
 
 
 class FirecrawlProvider(SearchProvider):
@@ -50,3 +51,20 @@ class FirecrawlProvider(SearchProvider):
             ))
         return ProviderResult(provider=self.name, query=request.query,
                               items=items, estimated_cost=0.003)
+
+    def scrape(self, url: str, max_chars: int = 2000) -> str:
+        """抓取指定 URL 正文（markdown）。失败返回空串。"""
+        if not self._key:
+            return ""
+        body = {"url": url, "formats": ["markdown"], "onlyMainContent": True}
+        req = urllib.request.Request(
+            _SCRAPE, data=json.dumps(body).encode(),
+            headers={"Content-Type": "application/json",
+                     "Authorization": f"Bearer {self._key}"}, method="POST")
+        try:
+            with urllib.request.urlopen(req, timeout=45) as r:
+                data = json.loads(r.read().decode())
+            md = data.get("data", {}).get("markdown", "")
+            return md[:max_chars]
+        except Exception:
+            return ""

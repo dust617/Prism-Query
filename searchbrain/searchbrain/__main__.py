@@ -20,13 +20,20 @@ def main() -> int:
     parser.add_argument("--mode", default="auto",
                         choices=[m.value for m in SearchMode])
     parser.add_argument("--json", action="store_true", help="输出 JSON")
+    parser.add_argument("--output", choices=["full", "compact", "facts"],
+                        default="full", help="输出详细度")
     args = parser.parse_args()
 
     resp = search(args.query, mode=SearchMode(args.mode))
 
     if args.json:
-        print(json.dumps(resp.to_dict(), ensure_ascii=False, indent=2),
-              file=sys.stdout)
+        if args.output == "compact":
+            out = resp.compact_dict()
+        elif args.output == "facts":
+            out = resp.facts_dict()
+        else:
+            out = resp.to_dict()
+        print(json.dumps(out, ensure_ascii=False, indent=2), file=sys.stdout)
         return 0
 
     print(f"查询: {resp.query}")
