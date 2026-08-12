@@ -81,9 +81,10 @@ def assess(query: str, evidences: list[Evidence],
     if level == SearchLevel.S2:
         return n >= 2 or has_ans
     if level == SearchLevel.S3:
-        return n >= 3 and n_prov >= 2
+        # 2+ 来源交叉 + 有内容即可（问答型源只给 answer 不给条目，n 放宽到 2）
+        return n >= 2 and n_prov >= 2
     if level == SearchLevel.S4:
-        return n >= 4 and n_prov >= 2 and has_ans
+        return n >= 3 and n_prov >= 2 and has_ans
     return True
 
 
