@@ -10,6 +10,7 @@ from .firecrawl import FirecrawlProvider
 from .deepseek import DeepSeekProvider
 from .tavily import TavilyProvider
 from .anysearch import AnySearchProvider
+from .doubao import DoubaoProvider
 
 
 def load_providers() -> None:
@@ -28,3 +29,5 @@ def load_providers() -> None:
         register(TavilyProvider())
     if get_key("ANYSEARCH_API_KEY"):
         register(AnySearchProvider())
+    if get_key("ARK_API_KEY"):
+        register(DoubaoProvider())
