@@ -39,6 +39,7 @@ def record(resp: SearchResponse,
             "latency_ms": resp.trace.latency_ms,
             "stop": resp.trace.stop_reason,
             "cross_validated": resp.cross_validated,
+            "confidence": resp.confidence,
             "tokens": tokens,
         }
         with open(_LOG_FILE, "a", encoding="utf-8") as f:
