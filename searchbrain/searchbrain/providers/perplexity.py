@@ -18,7 +18,7 @@ _DEFAULT_MODEL = "perplexity/sonar"  # 轻量均衡
 
 class PerplexityProvider(SearchProvider):
     name = "perplexity"
-    capabilities = {"search_web", "research", "answer_with_citations"}
+    capabilities = {"search_web", "research", "answer_with_citations", "global", "cheap"}
     cost_level = "low"
 
     def __init__(self, model: str | None = None):

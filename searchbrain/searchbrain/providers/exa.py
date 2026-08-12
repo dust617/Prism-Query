@@ -18,7 +18,7 @@ _ANSWER = "https://api.exa.ai/answer"
 
 class ExaProvider(SearchProvider):
     name = "exa"
-    capabilities = {"search_web", "fetch_url", "research", "answer_with_citations"}
+    capabilities = {"search_web", "fetch_url", "research", "answer_with_citations", "global"}
     cost_level = "medium"
 
     def __init__(self):

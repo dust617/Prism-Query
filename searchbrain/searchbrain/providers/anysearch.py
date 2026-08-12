@@ -1,52 +1,56 @@
-"""Firecrawl Provider（搜索 + 抓页，网页理解层）。
+"""AnySearch Provider（全文正文搜索，区域感知，免费额度高）。
 
-实测：/search 6-12s 命中官方页；/scrape 返回干净 markdown。
-成本：按 credits（免费额度内 0，之后按量）。
+实测：返回整页内容（截断），支持 cn/intl 区域。
+成本：免费约 1000 次/天（Key 已配置）。
 """
 from __future__ import annotations
 
 import json
+import re
 import urllib.request
 
 from ..config import get_key
 from ..models import ProviderResult, SearchItem, SearchRequest
 from .base import SearchProvider
 
-_SEARCH = "https://api.firecrawl.dev/v2/search"
+_URL = "https://api.anysearch.com/v1/search"
+_ZH = re.compile(r"[\u4e00-\u9fff]")
 
 
-class FirecrawlProvider(SearchProvider):
-    name = "firecrawl"
-    capabilities = {"fetch_url", "extract_page", "crawl_site", "search_web", "global"}
-    cost_level = "medium"
+class AnySearchProvider(SearchProvider):
+    name = "anysearch"
+    capabilities = {"search_web", "global", "cheap"}
+    cost_level = "low"
 
     def __init__(self):
-        self._key = get_key("FIRECRAWL_API_KEY")
+        self._key = get_key("ANYSEARCH_API_KEY")
 
     def search(self, request: SearchRequest) -> ProviderResult:
         if not self._key:
             return ProviderResult(provider=self.name, query=request.query,
                                   raw_metadata={"error": "no key"})
-        body = {"query": request.query, "limit": min(request.max_results, 8)}
+        body = {"query": request.query,
+                "max_results": min(request.max_results, 8)}
+        # 区域感知：中文问题走 cn，否则 intl
+        body["region"] = "cn" if _ZH.search(request.query) else "intl"
         req = urllib.request.Request(
-            _SEARCH, data=json.dumps(body).encode(),
+            _URL, data=json.dumps(body).encode(),
             headers={"Content-Type": "application/json",
                      "Authorization": f"Bearer {self._key}"}, method="POST")
         try:
-            with urllib.request.urlopen(req, timeout=60) as r:
+            with urllib.request.urlopen(req, timeout=30) as r:
                 data = json.loads(r.read().decode())
         except Exception as exc:
             return ProviderResult(provider=self.name, query=request.query,
                                   raw_metadata={"error": str(exc)})
+        results = data.get("data", {}).get("results", [])
         items = []
-        web = data.get("data", {}).get("web", []) if isinstance(
-            data.get("data"), dict) else []
-        for r_ in web[: request.max_results]:
+        for r_ in results[: request.max_results]:
             items.append(SearchItem(
                 title=r_.get("title", ""),
                 url=r_.get("url", ""),
-                snippet=r_.get("description", ""),
+                snippet=(r_.get("content") or r_.get("snippet") or "")[:300],
                 source=self.name,
             ))
         return ProviderResult(provider=self.name, query=request.query,
-                              items=items, estimated_cost=0.003)
+                              items=items, estimated_cost=0.001)

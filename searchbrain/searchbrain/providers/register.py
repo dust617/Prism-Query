@@ -8,6 +8,8 @@ from .exa import ExaProvider
 from .perplexity import PerplexityProvider
 from .firecrawl import FirecrawlProvider
 from .deepseek import DeepSeekProvider
+from .tavily import TavilyProvider
+from .anysearch import AnySearchProvider
 
 
 def load_providers() -> None:
@@ -22,3 +24,7 @@ def load_providers() -> None:
         register(FirecrawlProvider())
     if get_key("DEEPSEEK_API_KEY"):
         register(DeepSeekProvider())
+    if get_key("TAVILY_API_KEY"):
+        register(TavilyProvider())
+    if get_key("ANYSEARCH_API_KEY"):
+        register(AnySearchProvider())

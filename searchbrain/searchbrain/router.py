@@ -66,11 +66,13 @@ def choose(query: str, used: set[str], level: SearchLevel,
     best, best_score = None, -1
     for p in candidates:
         s = 0
-        # 语言匹配（最优先）
-        if is_zh and "zh" in p.capabilities:
-            s += 4
-        elif not is_zh:
-            s += 1
+        # 语言匹配（最优先）：中文→zh 源；非中文→global 源（zh 源不并列）
+        if is_zh:
+            if "zh" in p.capabilities:
+                s += 4
+        else:
+            if "global" in p.capabilities:
+                s += 2
         # 成本（同等能力下便宜优先）
         s += _COST_BONUS.get(p.cost_level, 1)
         # 专项能力命中（该能力越专越好）
