@@ -34,7 +34,7 @@
 ## 使用
 
 ```bash
-pip install -e ./searchbrain   # 或 sys.path 指向 searchbrain/
+pip install -e ./searchbrain[mcp]   # 带 MCP；或 sys.path 指向 searchbrain/
 
 # Python
 from searchbrain import search
@@ -44,7 +44,26 @@ print(r.answer, r.results, r.trace)
 # CLI
 PYTHONIOENCODING=utf-8 python -m searchbrain "你的问题"
 PYTHONIOENCODING=utf-8 python -m searchbrain "你的问题" --mode quality --json
+
+# MCP（供 Claude Code / Codex / OpenCode / GPT CLI 等调用）
+python -m searchbrain.mcp_server   # stdio server，只暴露 search(query, mode)
 ```
+
+## 统一输出结构（MCP/CLI/Python 同一 schema）
+
+```json
+{
+  "answer": "...",
+  "evidence": [{"title":"","url":"","snippet":"","source_type":"",
+                "provider":"","published_at":null}],
+  "sources": ["https://..."],
+  "confidence": 0.0,
+  "trace": {"searched":true,"depth":"S2","providers":[],"queries":1,
+            "cost":0.0,"latency_ms":0,"stop_reason":"sufficient"}
+}
+```
+
+`evidence` 是核心资产；`answer` 可为空（问答型 Provider 有值）。
 
 ## Provider（真实 API 实测）
 
@@ -68,8 +87,16 @@ FIRECRAWL_API_KEY=...
 ```
 智谱/DeepSeek 自动从 `~/.pi/agent/auth.json` 读取。
 
+## Evals（数据驱动调优，不玄学）
+
+```bash
+python evals/run_evals.py            # 决策层（Trigger/Depth/Router，不触发网络）
+python evals/run_evals.py --live     # 追加真实搜索抽样（计费）
+```
+
+当前指标：Trigger Precision/Recall 1.0，Depth 8/8，Router 7/7。新增 case 直接追加到 `evals/*.jsonl`。
+
 ## 待完善（按规划，核心稳定后再做）
 - InfoGap JSON 化（小模型输出结构化缺口）
-- Evals 测试集（Trigger/Depth/Policy/Router 各 cases，统计准确率/成本）
-- 最小 MCP wrapper（只暴露 search）
+- fetch_url 作为内部 capability（Firecrawl）——仅当 snippet 不足时才抓 1-3 页，不默认执行
 - Research Loop / 交叉验证 / 结果压缩 / HTTP API / 搜索记忆

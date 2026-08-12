@@ -9,5 +9,8 @@ description = "面向 AI Agent 的智能搜索中间层（初版）"
 requires-python = ">=3.10"
 dependencies = []
 
+[project.optional-dependencies]
+mcp = ["fastmcp>=3"]
+
 [tool.setuptools.packages.find]
 include = ["searchbrain*"]

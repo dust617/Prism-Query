@@ -16,20 +16,21 @@ from .models import SearchLevel, SearchMode
 # 深度维度关键词
 _COVERAGE = re.compile(
     r"比较|对比|分析|调研|研究|市场|推荐|哪个好|优缺点|趋势|报告|评估|"
-    r"方案|选择|选项|对比|compare|analysis|research|market|recommend|"
-    r"pros|cons|trend|report|evaluate|options"
+    r"方案|选择|选项|格局|竞争|行业|机会|盘点|行情|该不该|值不值得|要不要|"
+    r"compare|analysis|research|market|recommend|pros|cons|trend|report|"
+    r"evaluate|options|landscape|competition|opportunity"
 )
 _CONFLICT = re.compile(
     r"争议|质疑|真假|口碑|评价|看法|社区|反馈|吐槽|靠谱吗|可信吗|"
     r"controversy|dispute|review|feedback|opinion|community|reliable"
 )
 _IMPORTANCE = re.compile(
-    r"决定|投资|采购|决策|创业|风险|大额|重要|关键|critical|investment|"
-    r"decision|risk|important|budget|采购|选型"
+    r"决定|投资|采购|决策|创业|风险|大额|重要|关键|该不该|值不值得|要不要|"
+    r"critical|investment|decision|risk|important|budget|选型"
 )
 _DIVERSITY = re.compile(
     r"比较|对比|竞品|多家|不同|行业|厂商|供应商|哪个好|alternatives|"
-    r"compare|competitor|different|industry|providers|which"
+    r"compare|competitor|different|industry|providers|which|竞争|格局|竞品对比"
 )
 
 

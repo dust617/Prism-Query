@@ -48,7 +48,7 @@ _TECHNICAL = re.compile(r"(github\.com|stackoverflow\.com|gitlab|"
                         r"readthedocs|w3\.org|arxiv|docs\.|developer\.)", re.I)
 
 
-def classify_intent(query: str) -> str:
+def classify_intent(query):
     """判断问题最偏向哪种来源。"""
     q = query.lower()
     if re.search(r"体验|稳定性|口碑|评价|好用吗|怎么样|坑|问题|bug|反馈|"
@@ -60,15 +60,13 @@ def classify_intent(query: str) -> str:
     if re.search(r"新闻|最新.*发布|宣布|推出|行情|动态|news|release|"
                  r"announce|trend", q):
         return "news"
-    if re.search(r"api|mcp|sdk|文档|接口|怎么用|技术|代码|框架|"
-                 r"api|mcp|sdk|docs|technical|code|library|dependency", q):
+    if re.search(r"github|gitlab|开源|代码|源码|框架|electron|tauri|react|vue|"
+                 r"sdk|library|dependency|npm|pip|stackoverflow|技术栈|活跃度|stars|项目仓库", q):
         return "technical"
-    if re.search(r"官方|价格|多少钱|规格|支持|支持吗|好不好使|能不能|"
-                 r"official|price|spec|how much|support", q):
+    if re.search(r"官方|api|mcp|文档|docs|接口|参数|价格|多少钱|单价|支持|规格|"
+                 r"spec|how much|price|support|能不能|好不好|收费标准", q):
         return "official"
     return "general"
-
-
 def _source_type(url: str) -> str:
     if _OFFICIAL.search(url):
         return "official"

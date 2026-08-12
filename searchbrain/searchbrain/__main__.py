@@ -25,36 +25,20 @@ def main() -> int:
     resp = search(args.query, mode=SearchMode(args.mode))
 
     if args.json:
-        print(json.dumps({
-            "query": resp.query,
-            "answer": resp.answer,
-            "results": [{"title": i.title, "url": i.url,
-                         "snippet": i.snippet[:120], "provider": i.provider,
-                         "source_type": i.source_type}
-                        for i in resp.results],
-            "trace": {
-                "level": resp.trace.level,
-                "need_score": round(resp.trace.need_score, 2),
-                "providers": resp.trace.providers_used,
-                "capabilities": resp.trace.capabilities_used,
-                "queries": resp.trace.queries,
-                "cost": round(resp.trace.estimated_cost, 5),
-                "stop": resp.trace.stop_reason,
-            },
-        }, ensure_ascii=False, indent=2), file=sys.stdout)
+        print(json.dumps(resp.to_dict(), ensure_ascii=False, indent=2),
+              file=sys.stdout)
         return 0
 
     print(f"查询: {resp.query}")
-    print(f"深度: {resp.trace.level} | "
-          f"需搜分: {resp.trace.need_score:.2f} | "
+    print(f"深度: {resp.trace.level} | 需搜分: {resp.trace.need_score:.2f} | "
+          f"搜索: {'是' if resp.trace.searched else '否'} | "
+          f"置信: {resp.confidence:.2f} | "
           f"Provider: {','.join(resp.trace.providers_used) or '-'} | "
-          f"能力: {','.join(resp.trace.capabilities_used) or '-'} | "
-          f"查询数: {resp.trace.queries} | "
-          f"成本: ${resp.trace.estimated_cost:.5f} | "
+          f"查询: {resp.trace.queries} | 成本: ${resp.trace.estimated_cost:.5f} | "
           f"停止: {resp.trace.stop_reason}")
     if resp.answer:
         print(f"\n[答案] {resp.answer[:400]}")
-    print(f"\n结果 {len(resp.results)} 条:")
+    print(f"\n结果 {len(resp.results)} 条 (置信 {resp.confidence}):")
     for it in resp.results:
         print(f"  · [{it.provider}/{it.source_type}] {it.title[:46]}")
         print(f"      {it.url}")

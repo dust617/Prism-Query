@@ -1,0 +1,7 @@
+{"query": "X上大家怎么评价GPT-5.6", "expected_cap": "answer_with_citations", "hint": "global"}
+{"query": "GLM 最新版本 2026", "expected_cap": "search_web", "hint": "zh"}
+{"query": "某GitHub开源项目活跃度", "expected_cap": "search_code", "hint": "global"}
+{"query": "Claude API 支持什么参数", "expected_cap": "search_web"}
+{"query": "比较 Tavily 和 Exa API 优缺点", "expected_cap": "search_web", "hint": "multi"}
+{"query": "Electron vs Tauri 哪个更适合桌面应用", "expected_cap": "search_code"}
+{"query": "OpenAI 最新模型价格", "expected_cap": "search_web"}

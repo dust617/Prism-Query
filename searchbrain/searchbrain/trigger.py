@@ -53,6 +53,9 @@ _NO_SEARCH = re.compile(
 _STRONG = re.compile(
     r"最新|价格|多少钱|售价|版本|发布|宣布|涨价|降价|推出|202[0-9]|"
     r"评价|怎么看|舆情|口碑|反馈|x上|twitter|reddit|大家觉得|风评|"
+    r"该不该|值不值得|要不要|是否应该|适合吗|值得吗|"
+    r"(分析|调研|研究|盘点|评估).{0,6}(市场|行业|格局|竞争|趋势|机会|电商|工具|产品|领域)|"
+    r"(市场|行业|格局|竞争|趋势|机会).{0,4}(分析|调研|研究)|"
     r"latest|price|pricing|version|release|review|sentiment|feedback|cost"
 )
 

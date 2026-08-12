@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from .config import Defaults
 from .depth import Budget, compute_depth_score, decide_level
+from .evaluator import compute_confidence
 from .evidence import (apply_source_policy, assess, dedupe, detect_gap,
                        normalize)
 from .models import (Evidence, InfoGap, ProviderResult, SearchLevel,
@@ -61,8 +62,10 @@ def search(request: SearchRequest | str,
     trace.need_score = need_score
     if need_score < Defaults.NEED_THRESHOLD:
         trace.level = SearchLevel.S0.value
+        trace.searched = False
         trace.stop_reason = "below_need_threshold"
-        return SearchResponse(query=request.query, results=[], trace=trace)
+        return SearchResponse(query=request.query, results=[], trace=trace,
+                              confidence=0.0)
 
     # 2) Decision Plane —— Initial Depth：搜多深（初始预算，可动态升级）
     level = decide_level(need_score, trace.depth_score, request.mode)
@@ -120,11 +123,15 @@ def search(request: SearchRequest | str,
         # 有缺口 → 继续循环（预算不足时循环顶部会决定是否 escalate）
 
     evidences = _rank_evidence(request.query, evidences)
+    trace.searched = True
     trace.latency_ms = sum(r.latency_ms for r in results)
     if not trace.stop_reason:
         trace.stop_reason = "budget_exhausted"
+    confidence = compute_confidence(request.query, evidences, results,
+                                    level, True)
 
     return SearchResponse(query=request.query,
                           answer=_pick_answer(results),
                           results=evidences,
-                          trace=trace)
+                          trace=trace,
+                          confidence=confidence)

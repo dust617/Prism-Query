@@ -1,0 +1,20 @@
+{"query": "Python 目前最新稳定版本是什么", "expected_search": true}
+{"query": "某API现在支持MCP吗", "expected_search": true}
+{"query": "比较 Tavily 和 Exa 搜索 API 的优缺点", "expected_search": true}
+{"query": "X上大家怎么评价GPT-5.6", "expected_search": true}
+{"query": "壁挂纸巾盒 1688 批发价格", "expected_search": true}
+{"query": "2026年AI Agent市场趋势怎么样", "expected_search": true}
+{"query": "GLM API 目前价格是多少", "expected_search": true}
+{"query": "OpenAI 最近发布了什么新模型", "expected_search": true}
+{"query": "巴西电商 2026 市场规模 数据", "expected_search": true}
+{"query": "显卡 RTX 5090 现在多少钱", "expected_search": true}
+{"query": "解释什么是TCP", "expected_search": false}
+{"query": "翻译这句话到英文", "expected_search": false}
+{"query": "帮我写一段Python代码实现排序", "expected_search": false}
+{"query": "比较两种数据库的一致性模型", "expected_search": false}
+{"query": "什么是递归", "expected_search": false}
+{"query": "写一首关于春天的诗", "expected_search": false}
+{"query": "计算 23 乘以 17", "expected_search": false}
+{"query": "总结这两段代码的区别", "expected_search": false}
+{"query": "解释哈希表的原理", "expected_search": false}
+{"query": "把这个列表去重排序", "expected_search": false}

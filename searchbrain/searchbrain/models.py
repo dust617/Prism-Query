@@ -89,6 +89,16 @@ class InfoGap:
     suggested_query: str = ""
     expected_value: float = 0.5                   # 补齐后预计价值 0-1
 
+    def to_dict(self) -> dict:
+        """结构化输出（供 Agent 和补搜判断）。"""
+        return {
+            "gap": self.description,
+            "importance": round(self.importance, 2),
+            "preferred_source_type": self.preferred_source_type,
+            "suggested_query": self.suggested_query,
+            "expected_value": round(self.expected_value, 2),
+        }
+
 
 @dataclass
 class SearchTrace:
@@ -96,6 +106,7 @@ class SearchTrace:
     level: str = SearchLevel.S0.value
     need_score: float = 0.0
     depth_score: float = 0.0
+    searched: bool = False               # 是否实际触发搜索
     providers_used: list[str] = field(default_factory=list)
     capabilities_used: list[str] = field(default_factory=list)
     queries: int = 0
@@ -107,7 +118,43 @@ class SearchTrace:
 
 @dataclass
 class SearchResponse:
+    """统一输出结构。evidence 是核心资产，answer 可为空。"""
     query: str
     answer: Optional[str] = None
     results: list[Evidence] = field(default_factory=list)  # 归一化后的证据层
     trace: SearchTrace = field(default_factory=SearchTrace)
+    confidence: float = 0.0
+
+    @property
+    def sources(self) -> list[str]:
+        """去重来源 URL 列表（保持出现顺序）。"""
+        seen: set[str] = set()
+        out: list[str] = []
+        for e in self.results:
+            if e.url and e.url not in seen:
+                seen.add(e.url)
+                out.append(e.url)
+        return out
+
+    def to_dict(self) -> dict:
+        """标准序列化（MCP/HTTP/CLI 统一出口格式）。"""
+        return {
+            "answer": self.answer,
+            "evidence": [{"title": e.title, "url": e.url,
+                           "snippet": e.snippet,
+                           "source_type": e.source_type,
+                           "provider": e.provider,
+                           "published_at": e.published_at}
+                          for e in self.results],
+            "sources": self.sources,
+            "confidence": round(self.confidence, 2),
+            "trace": {
+                "searched": self.trace.searched,
+                "depth": self.trace.level,
+                "providers": self.trace.providers_used,
+                "queries": self.trace.queries,
+                "cost": round(self.trace.estimated_cost, 5),
+                "latency_ms": self.trace.latency_ms,
+                "stop_reason": self.trace.stop_reason,
+            },
+        }
