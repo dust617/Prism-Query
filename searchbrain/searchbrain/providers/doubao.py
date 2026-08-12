@@ -16,15 +16,24 @@ from .base import SearchProvider
 _URL = "https://ark.cn-beijing.volces.com/api/v3/responses"
 
 
-class DoubaoProvider(SearchProvider):
-    name = "doubao"
-    capabilities = {"search_web", "research", "answer_with_citations",
-                    "zh", "global"}
-    cost_level = "medium"
+class VolcProvider(SearchProvider):
+    """火山方舟通用 Provider（responses + web_search 联网插件）。
 
-    def __init__(self):
+    支持任意已开通的模型/推理接入点：
+    - 豆包系列（Doubao-Seed-2.1-pro 等，每日免费 token 或按量）
+    - 第三方模型（DeepSeek-V4-Flash 等，方舟上同样支持联网）
+    均为模型绑定搜索（B 类），模型判断是否搜索，适合深度/补充。
+    """
+
+    def __init__(self, name: str, model_env: str,
+                 capabilities: set[str] | None = None,
+                 cost_level: str = "medium"):
+        self.name = name
+        self.capabilities = capabilities or {
+            "search_web", "research", "answer_with_citations", "zh", "global"}
+        self.cost_level = cost_level
         self._key = get_key("ARK_API_KEY")
-        self._model = get_key("DOUBAO_MODEL") or "doubao-seed-2-1-pro-260628"
+        self._model = get_key(model_env) or ""
 
     def search(self, request: SearchRequest) -> ProviderResult:
         if not self._key:

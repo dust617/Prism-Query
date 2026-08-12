@@ -10,7 +10,7 @@ from .firecrawl import FirecrawlProvider
 from .deepseek import DeepSeekProvider
 from .tavily import TavilyProvider
 from .anysearch import AnySearchProvider
-from .doubao import DoubaoProvider
+from .doubao import VolcProvider
 
 
 def load_providers() -> None:
@@ -30,4 +30,14 @@ def load_providers() -> None:
     if get_key("ANYSEARCH_API_KEY"):
         register(AnySearchProvider())
     if get_key("ARK_API_KEY"):
-        register(DoubaoProvider())
+        # 豆包（Doubao-Seed-2.1-pro，每日免费 token 或按量）
+        register(VolcProvider(
+            name="doubao", model_env="DOUBAO_MODEL",
+            capabilities={"search_web", "research", "answer_with_citations",
+                          "zh", "global"}, cost_level="medium"))
+        # DeepSeek-V4-Flash（方舟托管，同样支持联网，每日免费 token）
+        if get_key("DEEPSEEK_VOLC_MODEL"):
+            register(VolcProvider(
+                name="deepseek_volc", model_env="DEEPSEEK_VOLC_MODEL",
+                capabilities={"search_web", "research", "answer_with_citations",
+                              "zh", "global", "cheap"}, cost_level="low"))
