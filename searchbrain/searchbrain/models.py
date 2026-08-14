@@ -38,6 +38,7 @@ class SearchRequest:
     provider_hint: Optional[str] = None           # 手动指定 Provider
     max_cost: Optional[float] = None              # 美元上限
     max_queries: Optional[int] = None             # 查询次数上限
+    search_bias: Optional[float] = None           # 搜索倾向系数（None=用全局默认）
     require_citations: bool = True
 
 
@@ -104,7 +105,8 @@ class InfoGap:
 class SearchTrace:
     """一次搜索的完整轨迹，用于调试和成本核算。"""
     level: str = SearchLevel.S0.value
-    need_score: float = 0.0
+    need_score: float = 0.0     # 生效的搜索需要分（已乘 bias）
+    search_bias: float = 1.0    # 本次实际使用的倾向系数
     depth_score: float = 0.0
     searched: bool = False               # 是否实际触发搜索
     providers_used: list[str] = field(default_factory=list)
@@ -153,6 +155,9 @@ class SearchResponse:
             "trace": {
                 "searched": self.trace.searched,
                 "depth": self.trace.level,
+                "need_score": round(self.trace.need_score, 4),
+                "search_bias": round(self.trace.search_bias, 4),
+                "depth_score": round(self.trace.depth_score, 4),
                 "providers": self.trace.providers_used,
                 "queries": self.trace.queries,
                 "cost": round(self.trace.estimated_cost, 5),
@@ -169,6 +174,8 @@ class SearchResponse:
             "confidence": round(self.confidence, 2),
             "trace": {"searched": self.trace.searched,
                       "depth": self.trace.level,
+                      "need_score": round(self.trace.need_score, 4),
+                      "search_bias": round(self.trace.search_bias, 4),
                       "cost": round(self.trace.estimated_cost, 5)},
         }
 

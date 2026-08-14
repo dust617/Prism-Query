@@ -1,4 +1,5 @@
-# ===== 凭据（绝不入库）=====
+# ===== 凭据与本机运行状态（绝不入库）=====
+.pi/
 .searchbrain-credentials.env
 *.env
 .env*

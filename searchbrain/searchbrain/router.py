@@ -79,9 +79,11 @@ def choose(query: str, used: set[str], level: SearchLevel,
         if cap in ("answer_with_citations", "search_social") and \
                 cap in p.capabilities:
             s += 2
-        # 免费源优先（如火山方舟 DeepSeek-V4-Flash 每日免费 token）
+        # 免费源优先加分（如方舟 DeepSeek-V4-Flash 免费 token）：
+        #    同效果下优先让免费/便宜源先摸一遍，花冤枉钱前先试免费，
+        #    发现价值缺口再升级。语言匹配(+4)仍优先，不会被免费反压。
         if "free" in p.capabilities:
-            s += 1
+            s += 2
         # 用户手动指定
         if request.provider_hint and p.name == request.provider_hint:
             s += 10

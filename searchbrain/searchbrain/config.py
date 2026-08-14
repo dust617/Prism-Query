@@ -4,6 +4,7 @@
 """
 from __future__ import annotations
 
+import math
 import os
 from pathlib import Path
 
@@ -66,10 +67,41 @@ def get_key(name: str) -> str | None:
     return os.environ.get(name) or None
 
 
-# 常用阈值（可按需调整）
+def _env_float(name: str, default: float, minimum: float,
+               maximum: float) -> float:
+    """读取有界有限 float；非法、NaN/Inf 或越界都回退默认值。"""
+    raw = os.environ.get(name)
+    if raw is None:
+        return default
+    try:
+        value = float(raw)
+    except ValueError:
+        return default
+    if not math.isfinite(value) or not minimum <= value <= maximum:
+        return default
+    return value
+
+
+def normalize_search_bias(value: float | None, default: float = 1.2) -> float:
+    """返回真正参与计算的搜索倾向系数（0.5–3.0，非法则回退）。"""
+    candidate = default if value is None else value
+    try:
+        normalized = float(candidate)
+    except (TypeError, ValueError):
+        return default
+    if not math.isfinite(normalized):
+        return default
+    return min(3.0, max(0.5, normalized))
+
+
+# 常用阈值（可按需调整；两个都可以用环境变量覆盖）
 class Defaults:
-    # Search Trigger：超过阈值才搜索
-    NEED_THRESHOLD = 0.35
+    # Search Trigger：超过阈值才搜索（SEARCHBRAIN_NEED_THRESHOLD 可覆盖）。
+    NEED_THRESHOLD = _env_float("SEARCHBRAIN_NEED_THRESHOLD", 0.35, 0.0, 1.0)
+    # 搜索倾向系数：1.0 = 原样；默认 1.20 会把当前离散评分中的
+    # 0.30 临界题提升到 0.36，越过 0.35 阈值，但不提高初始搜索深度。
+    # 环境变量 SEARCHBRAIN_SEARCH_BIAS 可覆盖，安全范围 0.5–3.0。
+    SEARCH_BIAS = _env_float("SEARCHBRAIN_SEARCH_BIAS", 1.20, 0.5, 3.0)
     # 单次搜索成本上限（美元），超过则强制停止
     MAX_COST = 0.20
     MAX_QUERIES = 12

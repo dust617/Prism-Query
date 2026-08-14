@@ -7,7 +7,7 @@
 """
 from __future__ import annotations
 
-from .config import Defaults
+from .config import Defaults, normalize_search_bias
 from .depth import Budget, compute_depth_score, decide_level
 from .evaluator import compute_confidence
 from .evidence import (apply_source_policy, assess, dedupe, detect_gap,
@@ -88,8 +88,14 @@ def search(request: SearchRequest | str,
 
     # 1) Decision Plane —— Trigger：该不该搜
     need_score, dims, penalty = compute_need_score(request.query)
-    trace.need_score = need_score
-    if need_score < Defaults.NEED_THRESHOLD:
+    # 搜索倾向系数：只放大“是否触发”，不放大“初始深度”。“多出来的倾向”
+    # 先落到免费/便宜源上，值不值得往下挖仍由 InfoGap 的 importance /
+    # expected_value 决定（避免“为搜而搜、为偏而深”）。
+    bias = normalize_search_bias(request.search_bias, Defaults.SEARCH_BIAS)
+    need_eff = min(1.0, need_score * bias)
+    trace.need_score = need_eff
+    trace.search_bias = bias
+    if need_eff < Defaults.NEED_THRESHOLD:
         trace.level = SearchLevel.S0.value
         trace.searched = False
         trace.stop_reason = "below_need_threshold"
@@ -97,6 +103,7 @@ def search(request: SearchRequest | str,
                               confidence=0.0)
 
     # 2) Decision Plane —— Initial Depth：搜多深（初始预算，可动态升级）
+    #    用“原始” need_score 定深：bias 提触发但不加深，深挖交给缺口升级。
     level = decide_level(need_score, trace.depth_score, request.mode)
     trace.level = level.value
     budget = Budget(level, max_cost or request.max_cost,
