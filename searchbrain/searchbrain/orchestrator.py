@@ -41,14 +41,12 @@ def _pick_answer(results: list[ProviderResult]) -> str | None:
 
 def _fetch_missing_pages(evidences: list[Evidence], results: list[ProviderResult],
                         max_fetch: int = 2) -> tuple[list[Evidence], bool]:
-    """读页闭环：snippet 不足时，用 Firecrawl 抓关键页面补正文。
+    """读页闭环：snippet 不足时抓关键页面补正文（经济先用免费管线）。
 
-    触发条件：有带 URL 的 evidence 且 snippet 较短（<200 字），
-    且 budget 允许（由调用方控制）。返回 (新增 evidence, 是否抓过)。
+    本地直抓(SSRF 防护)优先、Firecrawl 其次、Jina Reader 兜底，全部免 key 可用；
+    不再依赖 Firecrawl key 才能触发。返回 (新增 evidence, 是否抓过)。
     """
-    provider = get("firecrawl")
-    if provider is None or not hasattr(provider, "scrape"):
-        return [], False
+    from .providers.fetch_local import fetch_web
     # 候选：snippet 短且有 URL 的证据（按 relevance 排序）
     cands = sorted(
         [e for e in evidences if e.url and len(e.snippet) < 200],
@@ -57,11 +55,11 @@ def _fetch_missing_pages(evidences: list[Evidence], results: list[ProviderResult
         return [], False
     added = []
     for e in cands:
-        body = provider.scrape(e.url)
+        body, source = fetch_web(e.url)
         if body and len(body) > 100:
             added.append(Evidence(
                 url=e.url, title=e.title, snippet=body,
-                source_type=e.source_type, provider="firecrawl",
+                source_type=e.source_type, provider=source or "local",
                 relevance=e.relevance, authority=e.authority))
     return added, bool(added)
 

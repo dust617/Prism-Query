@@ -67,6 +67,50 @@ def get_key(name: str) -> str | None:
     return os.environ.get(name) or None
 
 
+def resolve_openai_auth() -> tuple[str, str] | None:
+    """解析 OpenAI 搜索凭据，返回 (secret, kind)。kind ∈ {"codex", "key"}。
+
+    优先级：
+      1. OPENAI_CODEX_TOKEN 环境变量（已登录的 OpenAI 会话凭据）
+      2. 本机 Pi/Codex 已保存的会话登录态
+      3. OPENAI_API_KEY（真 API Key，走官方/网关 Responses）
+
+    绝不在日志或返回值中泄露 secret；调用方负责脱敏。
+    """
+    import json as _json
+    from pathlib import Path as _Path
+
+    env_codex = os.environ.get("OPENAI_CODEX_TOKEN") or None
+    if env_codex:
+        return env_codex, "codex"
+    # 本机已有登录会话：Pi 与 Codex 两处都可能是"长期都有"的订阅授权
+    candidates = []
+    auth_pi = _Path.home() / ".pi" / "agent" / "auth.json"
+    if auth_pi.exists():
+        try:
+            d = _json.loads(auth_pi.read_text(encoding="utf-8"))
+            v = (d.get("openai-codex") or {}).get("access")
+            if isinstance(v, str) and v:
+                candidates.append((v, "codex"))
+        except Exception:
+            pass
+    auth_codex = _Path.home() / ".codex" / "auth.json"
+    if auth_codex.exists():
+        try:
+            d = _json.loads(auth_codex.read_text(encoding="utf-8"))
+            v = (d.get("tokens") or {}).get("access_token")
+            if isinstance(v, str) and v:
+                candidates.append((v, "codex"))
+        except Exception:
+            pass
+    if candidates:
+        return candidates[0]
+    env_key = os.environ.get("OPENAI_API_KEY") or None
+    if env_key:
+        return env_key, "key"
+    return None
+
+
 def _env_float(name: str, default: float, minimum: float,
                maximum: float) -> float:
     """读取有界有限 float；非法、NaN/Inf 或越界都回退默认值。"""

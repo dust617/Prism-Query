@@ -29,13 +29,21 @@
 简单问题 1 次搜索就结束（S1）；复杂调研自动多源交叉验证（S3）；真正重要的研究才进入深度模式（S4）。内部五档深度（S0-S4），用户只需说 `auto`，废话少花。
 
 ### 🌍 多搜索源，各用所长 — *Route to the best search source*
-中文问题 → GLM；英文问答 → Perplexity；语义检索/找报告 → Exa；抓网页 → Firecrawl；SERP 补充 → Tavily；全文 → AnySearch；深度 → DeepSeek；中文深度 → 豆包。**一次搜索只选最合适的一家，绝不"全都打一遍"。**
+中文问题 → GLM；英文问答 → Perplexity/OpenAI(本机会话免 key)；语义检索/找报告 → Exa（无 key 零配置）；抓网页 → 本地 SSRF 安全抓取→Firecrawl→Jina*；SERP 补充 → Tavily；全文 → AnySearch；深度 → DeepSeek；中文深度 → 豆包；免费英文兜底 → DuckDuckGo（keyless）。**一次搜索只选最合适的一家，绝不"全都打一遍"。**
+
+> *Jina Reader（免 key JS 渲染兜底）默认关闭：设 `SEARCHBRAIN_ENABLE_JINA=1` 启用（部分网络被风控）。
 
 ### 💰 成本敏感，先便宜够用 — *Cost-aware, cheap-first*
 先在便宜够用的源上搜，只有发现明确信息缺口、并且补齐价值大于成本时，才升级到更强的源。**搜的是"最合适的"，不是"最贵的"。**
+有免费源就优先免费源：OpenAI 搜索优先复用本机已登录的 OpenAI 会话（不计费）；Exa 无 key 时零配置走托管 MCP 免费额度；DuckDuckGo 完全免 key。
 
 ### 🛡️ 结果带置信度 — *Results come with confidence*
 每个回答都带一个 0-1 的置信分，如实反映"信息够不够全、够不够权威"。Agent 能据此决定是否采信，而不是盲目相信。
+
+### 🔓 免 key / 复用已有凭据 — *Zero-config sources*
+- **OpenAI 搜索**：优先复用本机已登录的 OpenAI 会话授权（开箱即用，无需单独配置 API Key）；无登录态时可用 `OPENAI_API_KEY`（官方付费）或 `OPENAI_RESPONSES_URL`（Responses 兼容网关）。
+- **Exa**：无 key 时零配置走托管 MCP 免费额度；配 `EXA_API_KEY` 走官方 API 不受限。
+- **DuckDuckGo**：完全免 key。
 
 ### 🔌 MCP 即插即用 — *Plug-and-play via MCP*
 一个命令接入 Claude Code / Codex / OpenCode / 任何支持 MCP 的 Agent，只暴露一个 `search(query, mode)`。
