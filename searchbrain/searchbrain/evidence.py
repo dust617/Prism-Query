@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import datetime as _dt
+import re as _re
 
 from .models import Evidence, InfoGap, ProviderResult, SearchItem, SearchLevel
 from .policy import _OFFICIAL, _SOCIAL, _COMMUNITY, _NEWS, _TECHNICAL
@@ -23,7 +24,7 @@ def _source_type(url: str) -> str:
 
 
 def normalize(result: ProviderResult) -> list[Evidence]:
-    """把 ProviderResult 的 items 转成统一 Evidence（start以 provider/url 标来源类型）。"""
+    """把 ProviderResult 的 items 转成统一 Evidence（以 provider/url 标来源类型）。"""
     now = _dt.datetime.now().isoformat(timespec="seconds")
     evs = []
     for it in result.items:
@@ -55,14 +56,65 @@ def dedupe(evidences: list[Evidence], max_items: int = 8) -> list[Evidence]:
     return out[:max_items]
 
 
+# 证据层 source_type 标签 → Source Policy 偏好表键：
+# 归一化层用更语义化的 official_docs 作为对外标签，策略层偏好表用 official。
+_SRC_TO_POLICY = {"official_docs": "official"}
+
+
 def apply_source_policy(query: str, evidences: list[Evidence]) -> list[Evidence]:
-    """用 Source Policy 给证据的来源类型赋权威度（相对问题类型）。"""
+    """用 Source Policy 给证据的来源类型赋权威度（相对问题类型）。
+
+    权威度是"相对问题类型"的：查官方参数时 official 来源权威最高，
+    查体验口碑时 community 来源最高——不是域名固定权重。
+    """
     from .policy import classify_intent, _PREF
     intent = classify_intent(query)
     pref = _PREF.get(intent, _PREF["general"])
     for e in evidences:
-        e.authority = pref.get(e.source_type, 0.3)
+        policy_key = _SRC_TO_POLICY.get(e.source_type, e.source_type)
+        e.authority = pref.get(policy_key, 0.3)
     return evidences
+
+
+# ---- 词面相关性（供排序兜底） ----
+
+# 中英文常见停用词：不参与相关性计算（避免"的/了/最新"等干扰）
+_STOP = {
+    "the", "a", "an", "is", "are", "was", "were", "and", "or", "for",
+    "with", "in", "on", "of", "to", "it", "this", "that", "how", "what",
+    "why", "when", "where", "which", "who", "do", "does", "did", "can",
+    "could", "will", "would", "should", "vs", "versus", "compare",
+    "最新", "现在", "当前", "怎么", "如何", "什么", "哪个", "哪些",
+    "是否", "的", "了", "和", "与", "或", "吗", "呢", "啊",
+}
+
+
+def _terms(text: str) -> set[str]:
+    """把文本切成检索词：英文单词（>=2 字符）+ 中文二元组（去标点/数字）。"""
+    terms: set[str] = set()
+    for w in _re.findall(r"[a-z0-9]{2,}", text.lower()):
+        if w not in _STOP:
+            terms.add(w)
+    for run in _re.findall(r"[\u4e00-\u9fff]{2,}", text):
+        for i in range(len(run) - 1):
+            bigram = run[i:i + 2]
+            if bigram not in _STOP:
+                terms.add(bigram)
+    return terms
+
+
+def lexical_relevance(query: str, evidence: Evidence) -> float:
+    """query 与 title+snippet 的词面重合度（0-1）。
+
+    多数 Provider 不返回 score，relevance 长期为 0；这里用词面重合
+    给一个可解释的相关性估计，供结果排序使用。
+    """
+    q_terms = _terms(query)
+    if not q_terms:
+        return 0.0
+    text_terms = _terms(f"{evidence.title} {evidence.snippet}")
+    hit = sum(1 for t in q_terms if t in text_terms)
+    return hit / len(q_terms)
 
 
 def assess(query: str, evidences: list[Evidence],

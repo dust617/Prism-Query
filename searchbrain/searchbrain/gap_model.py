@@ -53,7 +53,7 @@ def _build_prompt(query: str, evidences: list[Evidence],
     )
 
 
-def _call_model(prompt: str, key: str) -> dict | None:
+def _call_model(prompt: str, key: str) -> str | None:
     body = {
         "model": "deepseek-chat",
         "messages": [

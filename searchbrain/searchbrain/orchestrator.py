@@ -11,7 +11,7 @@ from .config import Defaults, normalize_search_bias
 from .depth import Budget, compute_depth_score, decide_level
 from .evaluator import compute_confidence
 from .evidence import (apply_source_policy, assess, dedupe, detect_gap,
-                       normalize)
+                       lexical_relevance, normalize)
 from .gap_model import detect_gap_with_model
 from .models import (Evidence, InfoGap, ProviderResult, SearchLevel,
                      SearchMode, SearchRequest, SearchResponse, SearchTrace)
@@ -20,6 +20,7 @@ from .providers.register import load_providers
 from .router import choose, choose_capability
 from .trigger import compute_need_score
 from . import usage as _usage
+from . import cache as _cache
 
 _loaded = False
 
@@ -65,9 +66,14 @@ def _fetch_missing_pages(evidences: list[Evidence], results: list[ProviderResult
 
 
 def _rank_evidence(query: str, evidences: list[Evidence]) -> list[Evidence]:
-    """证据排序：相关性 60% + 来源权威度 40%（权威度由 Source Policy 赋值）。"""
+    """证据排序：相关性 60% + 来源权威度 40%。
+
+    provider 给了 score 时用原分；否则用词面重合度兜底（多数源不返回 score，
+    否则 relevance 恒为 0 会退化成只按 authority 排）。权威度由 Source Policy 赋值。
+    """
     def _key(e: Evidence):
-        return 0.6 * e.relevance + 0.4 * e.authority + 0.1
+        rel = e.relevance if e.relevance > 0 else lexical_relevance(query, e)
+        return 0.6 * rel + 0.4 * e.authority
     return sorted(evidences, key=_key, reverse=True)
 
 
@@ -124,7 +130,8 @@ def search(request: SearchRequest | str,
                 break
 
         # Research Loop：若有缺口建议的新查询，用它演进补搜（而非原 query）
-        loop_query = (last_gap.suggested_query or request.query)             if last_gap and last_gap.suggested_query else request.query
+        loop_query = (last_gap.suggested_query or request.query) \
+            if last_gap and last_gap.suggested_query else request.query
         cap = choose_capability(loop_query)
         pname = choose(loop_query, used, level, request)
         if pname is None:
@@ -135,9 +142,17 @@ def search(request: SearchRequest | str,
         if provider is None:
             continue
 
-        result = provider.search(SearchRequest(
-            query=loop_query, mode=request.mode, max_results=request.max_results,
-            provider_hint=request.provider_hint))
+        result = _cache.get(pname, loop_query, request.mode.value,
+                            request.max_results)
+        if result is not None:
+            trace.cache_hits += 1
+        else:
+            result = provider.search(SearchRequest(
+                query=loop_query, mode=request.mode,
+                max_results=request.max_results,
+                provider_hint=request.provider_hint))
+            _cache.put(pname, loop_query, request.mode.value,
+                       request.max_results, result)
         results.append(result)
         budget.consume(1, result.estimated_cost)
         trace.providers_used.append(pname)
@@ -157,7 +172,8 @@ def search(request: SearchRequest | str,
         # 不够 → 先规则找机械缺口
         last_gap = detect_gap(request.query, evidences, results, level, budget)
         # 读页闭环：S3/S4 且已有 URL 但 snippet 不足 → 抓 1-2 页补正文
-        if last_gap is not None and level in (SearchLevel.S3, SearchLevel.S4)                 and budget.can_continue:
+        if last_gap is not None and level in (SearchLevel.S3, SearchLevel.S4) \
+                and budget.can_continue:
             fetched, fetched_any = _fetch_missing_pages(evidences, results)
             if fetched_any:
                 evidences = dedupe(evidences + fetched, request.max_results)
@@ -166,13 +182,15 @@ def search(request: SearchRequest | str,
                     trace.stop_reason = "sufficient_information"
                     break
         # 深度档 + 模型启用 → 用模型判语义缺口（规则机械判断之外，决定"值不值得继续"）
-        if level in (SearchLevel.S3, SearchLevel.S4)                 and Defaults.GAP_MODEL_ENABLED and not model_gap_checked:
+        if level in (SearchLevel.S3, SearchLevel.S4) \
+                and Defaults.GAP_MODEL_ENABLED and not model_gap_checked:
             model_gap_checked = True
             model_gap = detect_gap_with_model(request.query, evidences, results)
             if model_gap is not None:
                 last_gap = model_gap  # 模型缺口覆盖规则缺口（更了解语义还缺什么）
         # 补搜价值判断：importance 达标 且 expected_value 达标（价值 > 成本）
-        if last_gap is None or last_gap.importance < 0.5                 or last_gap.expected_value < 0.5:
+        if last_gap is None or last_gap.importance < 0.5 \
+                or last_gap.expected_value < 0.5:
             trace.stop_reason = "no_clear_gap"
             break
         # 有缺口 → 记录并继续循环（预算不足时顶部决定 escalate）

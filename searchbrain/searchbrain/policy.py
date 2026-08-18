@@ -12,8 +12,6 @@ from __future__ import annotations
 
 import re
 
-from .models import SearchItem
-
 # 问题类型 → 来源偏好权重 {official, community, social, technical, news}
 # 权重越高，该类型来源越靠前。
 _PREF = {
@@ -64,42 +62,7 @@ def classify_intent(query):
     if re.search(r"新闻|最新.*发布|宣布|推出|行情|动态|news|release|"
                  r"announce|trend", q):
         return "news"
-    if re.search(r"github|gitlab|开源|代码|源码|框架|electron|tauri|react|vue|"
-                 r"sdk|library|dependency|npm|pip|stackoverflow|技术栈|活跃度|stars|项目仓库", q):
-        return "technical"
     if re.search(r"官方|api|mcp|文档|docs|接口|参数|价格|多少钱|单价|支持|规格|"
                  r"spec|how much|price|support|能不能|好不好|收费标准", q):
         return "official"
     return "general"
-def _source_type(url: str) -> str:
-    if _OFFICIAL.search(url):
-        return "official"
-    if _SOCIAL.search(url):
-        return "social"
-    if _COMMUNITY.search(url):
-        return "community"
-    if _TECHNICAL.search(url):
-        return "technical"
-    if _NEWS.search(url):
-        return "news"
-    return "general"
-
-
-def rerank(query: str, items: list[SearchItem]) -> list[SearchItem]:
-    """按来源策略重排结果。不改动原列表内容，只调整顺序。
-
-    排序分 = 0.6 × 相关性分 + 0.4 × 来源偏好分（针对该问题的来源类型要求）
-    """
-    if not items:
-        return items
-    intent = classify_intent(query)
-    pref = _PREF.get(intent, _PREF["general"])
-    ranked = []
-    for ix, it in enumerate(items):
-        # 相关性基础分：用原始 score，若没有则用位置衰减
-        rel = it.score if it.score > 0 else max(0.0, 1.0 - ix * 0.1)
-        st = _source_type(it.url)
-        src_bonus = pref.get(st, 0.3)
-        ranked.append((it, 0.6 * rel + 0.4 * src_bonus))
-    ranked.sort(key=lambda x: x[1], reverse=True)
-    return [it for it, _ in ranked]

@@ -101,3 +101,11 @@ def compute_need_score(query: str) -> tuple[float, dict[str, float], float]:
     if _STRONG.search(query):
         score = max(score, 0.5)
     return max(0.0, min(1.0, score - penalty)), dims, penalty
+
+
+def is_time_sensitive(query: str) -> bool:
+    """时效/强信号问题：结果会随时间变化，不宜缓存。
+
+    命中新鲜度维度或强信号（价格/最新/舆情/版本等）即视为时效敏感。
+    """
+    return bool(_FRESHNESS.search(query) or _STRONG.search(query))

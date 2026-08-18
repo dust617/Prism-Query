@@ -39,7 +39,9 @@ searchbrain/
 │   ├── depth.py        # SearchDepth + S0-S4 + Budget（初始+动态升级）
 │   ├── policy.py       # Source Policy：信什么类型来源
 │   ├── router.py       # Best-fit Router：选能力→选 Provider
-│   ├── evidence.py     # 证据层：normalize/dedupe/assess/gap
+│   ├── evidence.py     # 证据层：normalize/dedupe/assess/gap + 词面相关性
+│   ├── cache.py        # 搜索缓存（非时效问题短期复用，省 token）
+│   ├── http_server.py  # 零依赖 HTTP API（POST /search、GET /health）
 │   ├── orchestrator.py # 主控制器（只暴露 search()）
 │   ├── models.py       # 数据模型（Evidence/InfoGap/Budget/...）
 │   └── providers/      # base + glm + perplexity + exa + firecrawl + deepseek
@@ -84,12 +86,24 @@ print(r.answer, r.results, r.trace)
 PYTHONIOENCODING=utf-8 python -m searchbrain "你的问题"
 PYTHONIOENCODING=utf-8 python -m searchbrain "你的问题" --mode quality --json
 
+# HTTP API（零依赖，供任意客户端）
+python -m searchbrain.http_server
+
 # MCP（供 Claude Code / Codex / OpenCode / GPT CLI 等调用）
 # 已配置到本机 Claude Code 和 Codex：
 #   claude mcp add searchbrain -e PYTHONPATH=<searchbrain目录> -- python -m searchbrain.mcp_server
 #   codex mcp add searchbrain -e PYTHONPATH=<searchbrain目录> -- python -m searchbrain.mcp_server
 # 或直接运行： python -m searchbrain.mcp_server
 ```
+
+## 搜索缓存
+
+相同 query+provider 短时间内重复搜索会复用上次结果（默认 TTL 600s），省 token 省时。
+
+- 只缓存"非时效"问题；命中 `trigger.is_time_sensitive`（价格/最新/舆情/版本等）一律不缓存
+- 命中后 estimated_cost 归零、token 剔除，避免用量日志重复计费
+- `SEARCHBRAIN_CACHE_TTL` 调 TTL（秒）；`SEARCHBRAIN_DISABLE_CACHE=1` 关闭；
+  目录默认 `~/.searchbrain/cache`（`SEARCHBRAIN_CACHE_DIR` 可覆盖）
 
 ## InfoGap 模型化（可选、默认开）
 

@@ -48,6 +48,18 @@
 ### 🔌 MCP 即插即用 — *Plug-and-play via MCP*
 一个命令接入 Claude Code / Codex / OpenCode / 任何支持 MCP 的 Agent，只暴露一个 `search(query, mode)`。
 
+### 🌐 HTTP API（零依赖）— *HTTP API*
+除 MCP 外，还内置一个 stdlib HTTP 服务，任何能发 HTTP 的客户端都能用：
+
+```bash
+python -m searchbrain.http_server              # 默认 http://127.0.0.1:8973
+curl -X POST http://127.0.0.1:8973/search -H 'Content-Type: application/json' \
+     -d '{"query":"Python 最新稳定版","mode":"auto"}'
+```
+
+### ⚡ 搜索缓存 — *Short-term cache*
+相同 query+provider 短时间内重复搜索直接复用上次结果（省 token/省时）。只缓存"非时效"问题；价格/最新/舆情类一律不缓存（避免陈旧）。默认 10 分钟，`SEARCHBRAIN_CACHE_TTL` 可调，`SEARCHBRAIN_DISABLE_CACHE=1` 关闭。
+
 ---
 
 ## 🏗️ 架构 / Architecture
@@ -143,9 +155,9 @@ python evals/run_evals.py --live     # 追加真实搜索抽样
 
 ## 🗺️ 路线图 / Roadmap
 
-- **V0.1（当前）**：核心四件事分离 + 8 搜索源 + MCP + Evals ✅
-- **V0.2**：结果压缩（compact/facts/full）、HTTP API、成本统计、搜索缓存
-- **V0.3**：Research Loop、交叉验证增强、来源可信度模型
+- **V0.1**：核心四件事分离 + 8 搜索源 + MCP + Evals ✅
+- **V0.2**：结果压缩（compact/facts/full）✅、HTTP API ✅、成本统计 ✅、搜索缓存 ✅
+- **V0.3**：Research Loop ✅、交叉验证 ✅、来源可信度模型（进行中：权威度已相对问题类型落地）
 - **V1.0**：Search Memory、领域搜索策略、长期知识库
 
 ---

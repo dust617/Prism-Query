@@ -113,6 +113,7 @@ class SearchTrace:
     capabilities_used: list[str] = field(default_factory=list)
     queries: int = 0
     rounds: int = 0
+    cache_hits: int = 0
     estimated_cost: float = 0.0
     latency_ms: int = 0
     stop_reason: str = ""
@@ -160,6 +161,7 @@ class SearchResponse:
                 "depth_score": round(self.trace.depth_score, 4),
                 "providers": self.trace.providers_used,
                 "queries": self.trace.queries,
+                "cache_hits": self.trace.cache_hits,
                 "cost": round(self.trace.estimated_cost, 5),
                 "latency_ms": self.trace.latency_ms,
                 "stop_reason": self.trace.stop_reason,

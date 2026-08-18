@@ -27,10 +27,10 @@ _RE_SNIPPET = re.compile(r'class="result__snippet"[^>]*>(.*?)</a>', re.S)
 def _real_url(redirect: str) -> str:
     """DDG HTML 的结果链接是重定向包装，解出真实 URL。"""
     if "duckduckgo.com/l/?" in redirect:
-        q = urllib.parse.parse_qs(urllib.parse.urlsplit(redirect).query)
-        target = q.get("uddg") or q.get("uddg")
-        if target:
-            return urllib.parse.unquote(target[0])
+        qs = urllib.parse.parse_qs(urllib.parse.urlsplit(redirect).query)
+        for key in ("uddg", "u"):
+            if qs.get(key):
+                return urllib.parse.unquote(qs[key][0])
     return redirect
 
 
